@@ -1,0 +1,13 @@
+[
+  {
+    "domain": "yourdomain.com",
+    "token": "Provide your token here",
+    "record": [
+      {
+        "name": "sub.yourdomain.com",
+        "type": "A",
+        "proxied": true
+      }
+    ]
+  }
+]
