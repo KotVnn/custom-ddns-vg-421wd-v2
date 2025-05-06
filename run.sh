@@ -1,0 +1,1 @@
+docker run -d --name ddns --restart always -v /opt/sources/ddns/.env:/app/.env -v /opt/sources/ddns/config.json:/app/config.json kotvnn/custom-ddns:vg421wdv2

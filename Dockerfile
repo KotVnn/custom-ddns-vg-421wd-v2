@@ -25,4 +25,4 @@ COPY --from=dev /app/config.json /app/
 COPY --from=dev /app/node_modules /app/node_modules
 
 # Command to run the application
-CMD ["node", "index.js"]
+CMD ["node", "app.js"]
