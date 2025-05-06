@@ -8,7 +8,6 @@ const USERNAME = process.env.ROUTER_USERNAME;
 const PASSWORD = process.env.ROUTER_PASSWORD;
 
 let currentWanIp = null;
-let retryTimeout = 30000;
 let checkInterval = 3000;
 
 const parseWanIpFromLog = (logText) => {
@@ -49,6 +48,7 @@ const fetchAndCheckLog = async () => {
 
         if (!newWanIp) {
             console.warn('[WARN] Không tìm thấy IP WAN trong log');
+            return setTimeout(main, checkInterval);
         } else if (newWanIp !== currentWanIp) {
             await notifyIpChange(newWanIp);
         } else {
@@ -59,17 +59,47 @@ const fetchAndCheckLog = async () => {
 
     } catch (err) {
         console.error('[ERROR] Lỗi khi request log:', err.message);
-        setTimeout(fetchAndCheckLog, retryTimeout);
+        setTimeout(main, checkInterval);
     }
 };
+
+const getToken = async () => {
+    try {
+        const htmlToolLog = await request({method: 'get', url: `${ROUTER_IP}/cgi-bin/tools-log.asp`});
+        const token = htmlToolLog.data.match(/name=["']TokenString["'][^>]*value=["']([^"']+)["']/i)?.[1];
+        if (token) return token;
+        else return null;
+    } catch (err) {
+        console.error('[ERROR] Lỗi khi request log:', err.message);
+        return null;
+    }
+}
+
+const setLog = async token => {
+    try {
+        await request({method: 'get', url: `${ROUTER_IP}/cgi-bin/syslog_tool.cgi?requesttype=refresh&logtype=0&TokenString=${token}`})
+        return true;
+    } catch (err) {
+        console.error('[ERROR] Lỗi khi set log:', err.message);
+        return false;
+    }
+}
 
 const main = async () => {
     try {
         await login(ROUTER_IP, USERNAME, PASSWORD);
         console.log('[INFO] Đã login thành công');
-        await fetchAndCheckLog(); // bắt đầu kiểm tra
+        const token = await getToken();
+        if (token) {
+            const rs = await setLog(token);
+            if (rs) await fetchAndCheckLog(); // bắt đầu kiểm tra
+            else setTimeout(main, checkInterval);
+        } else {
+            setTimeout(main, checkInterval);
+        }
     } catch (err) {
         console.error('[FATAL] Không login được:', err.message);
+        setTimeout(main, checkInterval);
     }
 };
 

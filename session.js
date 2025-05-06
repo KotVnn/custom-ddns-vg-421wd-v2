@@ -1,15 +1,34 @@
 const axios = require('axios');
 const https = require('https');
 const qs = require('qs');
-const { setSession } = require('./req');
+const { setSession, getSession} = require('./req');
 
 async function login(routerIp, username, password) {
+    const currentSession = getSession();
+    if (currentSession) {
+        try {
+            await axios.get(`${routerIp}/cgi-bin/logout.cgi`, {
+                httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+                timeout: 1000,
+                headers: {
+                    'Cookie': `SESSIONID=${currentSession}`,
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': `${routerIp}/cgi-bin/home.asp`
+                }
+            });
+        } catch (err) {
+            setSession(null);
+            await login(routerIp, username, password);
+        }
+    }
+
     const loginPage = `${routerIp}/cgi-bin/login.asp`;
 
     // 1. GET để lấy SESSIONID
     const res = await axios.get(loginPage, {
         httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-        headers: { 'User-Agent': 'Mozilla/5.0' }
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        timeout: 1000,
     });
 
     let cookies = res.headers['set-cookie'];

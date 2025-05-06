@@ -25,6 +25,7 @@ async function request({ method = 'get', url, data = null, headers = {} }) {
             'Accept': '*/*',
             ...headers,
         },
+        timeout: 1000,
     };
 
     if (data) config.data = data;
